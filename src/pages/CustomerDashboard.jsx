@@ -1416,11 +1416,16 @@ function CustomerDashboard() {
                           Pay this amount to the worker using
                           your UPI app.
                         </p>
-                        <UPIPaymentQR
+                       <UPIPaymentQR
   upiId={job.paymentUpiId}
   amount={job.payment}
   workerName={job.worker?.name}
   jobTitle={job.title}
+  jobId={job._id}
+  onPaymentSuccess={async () => {
+    await fetchCustomerJobs();
+    await fetchNotifications();
+  }}
 />
                       </div>
                     )}

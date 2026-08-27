@@ -1,11 +1,49 @@
+import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
+import API from "../services/api";
 
 function UPIPaymentQR({
   upiId,
   amount,
   workerName,
-  jobTitle
+  jobTitle,
+  jobId,
+  onPaymentSuccess
 }) {
+    const [confirming, setConfirming] = useState(false);
+
+  const handlePaymentPaid = async () => {
+    const confirmed = window.confirm(
+      "Have you completed the UPI payment to the worker?"
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setConfirming(true);
+
+      await API.put(
+        `/job/confirm-payment/${jobId}`,
+        {}
+      );
+
+      alert("Payment marked as successful!");
+
+      if (onPaymentSuccess) {
+        onPaymentSuccess();
+      }
+
+    } catch (error) {
+      console.error("PAYMENT CONFIRM ERROR:", error);
+
+      alert(
+        error.response?.data?.message ||
+        "Failed to confirm payment"
+      );
+    } finally {
+      setConfirming(false);
+    }
+  };
   if (!upiId || !amount || Number(amount) <= 0) {
     return (
       <p className="text-red-600 text-sm">
@@ -110,19 +148,27 @@ function UPIPaymentQR({
         PhonePe • Google Pay • Paytm • BHIM
       </p>
 
-      <div
-        style={{
-          textAlign: "center",
-          marginTop: "14px",
-          padding: "8px",
-          background: "#fff7ed",
-          borderRadius: "6px",
-          color: "#ea580c",
-          fontSize: "13px"
-        }}
-      >
-        ⏳ Waiting for payment confirmation...
-      </div>
+      <button
+  onClick={handlePaymentPaid}
+  disabled={confirming}
+  style={{
+    width: "100%",
+    textAlign: "center",
+    marginTop: "14px",
+    padding: "10px",
+    background: confirming ? "#9ca3af" : "#dcfce7",
+    border: "none",
+    borderRadius: "6px",
+    color: "#16a34a",
+    fontSize: "14px",
+    fontWeight: "700",
+    cursor: confirming ? "not-allowed" : "pointer"
+  }}
+>
+  {confirming
+    ? "⏳ Confirming Payment..."
+    : "✅ Payment Paid"}
+</button>
     </div>
   );
 }

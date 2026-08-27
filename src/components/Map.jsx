@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+
 import {
   MapContainer,
   TileLayer,
@@ -8,7 +9,9 @@ import {
 } from "react-leaflet";
 
 import L from "leaflet";
+
 import API from "../services/api";
+
 import "leaflet/dist/leaflet.css";
 
 
@@ -21,8 +24,10 @@ delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl:
     "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+
   iconUrl:
     "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+
   shadowUrl:
     "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png"
 });
@@ -33,16 +38,22 @@ L.Icon.Default.mergeOptions({
 // =====================================================
 
 const workerIcon = new L.Icon({
+
   iconUrl:
     "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
+
   iconSize: [38, 38],
+
   iconAnchor: [19, 38],
+
   popupAnchor: [0, -38]
+
 });
 
 
 // =====================================================
 // MAP RESIZE
+// IMPORTANT FOR PROFESSIONAL / RESPONSIVE LAYOUT
 // =====================================================
 
 function MapResize() {
@@ -51,19 +62,99 @@ function MapResize() {
 
   useEffect(() => {
 
-    setTimeout(() => {
-      map.invalidateSize();
-    }, 300);
+    const resizeMap = () => {
+
+      setTimeout(() => {
+
+        map.invalidateSize({
+          animate: false
+        });
+
+      }, 100);
+
+    };
+
+
+    // Initial resize
+    resizeMap();
+
+
+    // Resize again after page/layout finishes
+    const timer1 = setTimeout(() => {
+
+      map.invalidateSize({
+        animate: false
+      });
+
+    }, 500);
+
+
+    const timer2 = setTimeout(() => {
+
+      map.invalidateSize({
+        animate: false
+      });
+
+    }, 1000);
+
+
+    // Browser window resize
+    window.addEventListener(
+      "resize",
+      resizeMap
+    );
+
+
+    // Detect changes to map container size
+    let resizeObserver;
+
+    if (window.ResizeObserver) {
+
+      resizeObserver =
+        new ResizeObserver(() => {
+
+          map.invalidateSize({
+            animate: false
+          });
+
+        });
+
+      resizeObserver.observe(
+        map.getContainer()
+      );
+
+    }
+
+
+    return () => {
+
+      clearTimeout(timer1);
+
+      clearTimeout(timer2);
+
+      window.removeEventListener(
+        "resize",
+        resizeMap
+      );
+
+      if (resizeObserver) {
+
+        resizeObserver.disconnect();
+
+      }
+
+    };
 
   }, [map]);
 
+
   return null;
+
 }
 
 
 // =====================================================
 // FIT ALL WORKERS
-// HOMEPAGE ONLY
 // =====================================================
 
 function FitAllWorkers({
@@ -77,14 +168,23 @@ function FitAllWorkers({
 
     const locations = [];
 
+
+    // Customer location
     if (customerLocation) {
-      locations.push(customerLocation);
+
+      locations.push(
+        customerLocation
+      );
+
     }
 
+
+    // Worker locations
     workers.forEach((worker) => {
 
       const coordinates =
         worker.location?.coordinates;
+
 
       if (
         coordinates &&
@@ -96,6 +196,7 @@ function FitAllWorkers({
 
         const latitude =
           Number(coordinates[1]);
+
 
         if (
           !Number.isNaN(latitude) &&
@@ -113,21 +214,37 @@ function FitAllWorkers({
 
     });
 
+
+    // Fit map when there are multiple locations
     if (locations.length > 1) {
 
       const bounds =
         L.latLngBounds(locations);
 
-      map.fitBounds(bounds, {
-        padding: [40, 40],
-        maxZoom: 11
-      });
+
+      setTimeout(() => {
+
+        map.fitBounds(
+          bounds,
+          {
+            padding: [40, 40],
+            maxZoom: 11
+          }
+        );
+
+      }, 300);
 
     }
 
-  }, [workers, customerLocation, map]);
+  }, [
+    workers,
+    customerLocation,
+    map
+  ]);
+
 
   return null;
+
 }
 
 
@@ -140,11 +257,16 @@ function Map({
   showAllWorkers = false
 }) {
 
-  const [customerLocation, setCustomerLocation] =
-    useState(null);
+  const [
+    customerLocation,
+    setCustomerLocation
+  ] = useState(null);
 
-  const [workers, setWorkers] =
-    useState(initialWorkers);
+
+  const [
+    workers,
+    setWorkers
+  ] = useState(initialWorkers);
 
 
   // ===================================================
@@ -163,6 +285,7 @@ function Map({
 
     }
 
+
     navigator.geolocation.getCurrentPosition(
 
       (position) => {
@@ -173,12 +296,14 @@ function Map({
         const longitude =
           position.coords.longitude;
 
+
         setCustomerLocation([
           latitude,
           longitude
         ]);
 
       },
+
 
       (error) => {
 
@@ -189,9 +314,12 @@ function Map({
 
       },
 
+
       {
         enableHighAccuracy: true,
+
         timeout: 10000,
+
         maximumAge: 0
       }
 
@@ -208,29 +336,42 @@ function Map({
   useEffect(() => {
 
     if (!showAllWorkers) {
+
       return;
+
     }
+
 
     const getWorkers = async () => {
 
       try {
 
         const response =
-          await API.get("/auth/public-workers");
+          await API.get(
+            "/auth/public-workers"
+          );
+
 
         console.log(
           "Public workers:",
           response.data
         );
 
+
         const workerList =
           Array.isArray(response.data)
+
             ? response.data
+
             : response.data.workers || [];
+
 
         setWorkers(workerList);
 
-      } catch (error) {
+      }
+
+
+      catch (error) {
 
         console.error(
           "Failed to fetch public workers:",
@@ -240,6 +381,7 @@ function Map({
       }
 
     };
+
 
     getWorkers();
 
@@ -265,7 +407,7 @@ function Map({
 
 
   // ===================================================
-  // DEFAULT LOCATION
+  // DEFAULT BENGALURU LOCATION
   // ===================================================
 
   const defaultLocation = [
@@ -273,14 +415,28 @@ function Map({
     77.5946
   ];
 
+
   const mapCenter =
     customerLocation ||
     defaultLocation;
 
 
+  // ===================================================
+  // RENDER
+  // ===================================================
+
   return (
 
-    <div className="w-full">
+    <div
+      className="w-full"
+      style={{
+        width: "100%",
+        height: "500px",
+        position: "relative",
+        overflow: "hidden",
+        borderRadius: "20px"
+      }}
+    >
 
       <MapContainer
 
@@ -288,23 +444,29 @@ function Map({
 
         zoom={10}
 
+        scrollWheelZoom={true}
+
         style={{
-          height: "500px",
+          height: "100%",
           width: "100%",
-          borderRadius: "10px"
+          borderRadius: "20px"
         }}
 
       >
 
+        {/* MAP RESIZE FIX */}
+
         <MapResize />
 
 
-        {/* HOMEPAGE ONLY */}
+        {/* FIT WORKERS ON MAP */}
 
-const defaultLocation = [
-  12.9716,
-  77.5946
-];
+        <FitAllWorkers
+          workers={workers}
+          customerLocation={
+            customerLocation
+          }
+        />
 
 
         {/* =================================================
@@ -313,7 +475,7 @@ const defaultLocation = [
 
         <TileLayer
 
-          attribution='&copy; OpenStreetMap contributors'
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 
@@ -327,7 +489,9 @@ const defaultLocation = [
         {customerLocation && (
 
           <Marker
-            position={customerLocation}
+            position={
+              customerLocation
+            }
           >
 
             <Popup>
@@ -363,15 +527,18 @@ const defaultLocation = [
 
           }
 
+
           const longitude =
             Number(
               worker.location.coordinates[0]
             );
 
+
           const latitude =
             Number(
               worker.location.coordinates[1]
             );
+
 
           if (
             Number.isNaN(latitude) ||
@@ -381,6 +548,7 @@ const defaultLocation = [
             return null;
 
           }
+
 
           return (
 
@@ -405,8 +573,10 @@ const defaultLocation = [
                     👷 {worker.name}
                   </strong>
 
+
                   <br />
                   <br />
+
 
                   <strong>
                     Skill:
@@ -415,7 +585,9 @@ const defaultLocation = [
                   {worker.skills?.join(", ") ||
                     "Not specified"}
 
+
                   <br />
+
 
                   <strong>
                     Experience:
@@ -424,7 +596,9 @@ const defaultLocation = [
                   {worker.experience || 0}
                   {" "}years
 
+
                   <br />
+
 
                   <strong>
                     Rating:
@@ -432,11 +606,14 @@ const defaultLocation = [
 
                   ⭐ {worker.rating || 0}
 
+
                   <br />
+
 
                   <strong>
                     Status:
                   </strong>{" "}
+
 
                   <span
                     style={{
@@ -444,6 +621,7 @@ const defaultLocation = [
                         worker.isAvailable
                           ? "green"
                           : "red",
+
                       fontWeight: "bold"
                     }}
                   >
@@ -454,8 +632,10 @@ const defaultLocation = [
 
                   </span>
 
+
                   <br />
                   <br />
+
 
                   <strong>
                     Phone:
