@@ -442,7 +442,7 @@ function Map({
 
         center={mapCenter}
 
-        zoom={10}
+        zoom={3}
 
         scrollWheelZoom={true}
 

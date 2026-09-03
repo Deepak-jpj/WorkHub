@@ -6,43 +6,127 @@ import WorkerRegister from "./pages/WorkerRegister";
 import CustomerDashboard from "./pages/CustomerDashboard";
 import WorkerDashboard from "./pages/WorkerDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import RequestHistory from "./pages/RequestHistory";
 import Home from "./pages/Home";
 
+
 function ProtectedRoute({ role, children }) {
-  const user = JSON.parse(localStorage.getItem("user"));
+
+  const user = JSON.parse(
+    localStorage.getItem("user")
+  );
 
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
   if (user.role !== role) {
+
     if (user.role === "admin") {
-      return <Navigate to="/admin-dashboard" replace />;
+      return (
+        <Navigate
+          to="/admin-dashboard"
+          replace
+        />
+      );
     }
 
     if (user.role === "worker") {
-      return <Navigate to="/worker-dashboard" replace />;
+      return (
+        <Navigate
+          to="/worker-dashboard"
+          replace
+        />
+      );
     }
 
-    return <Navigate to="/customer-dashboard" replace />;
+    return (
+      <Navigate
+        to="/customer-dashboard"
+        replace
+      />
+    );
   }
 
   return children;
 }
 
+
 function App() {
+
   return (
+
     <BrowserRouter>
+
       <Routes>
 
-        <Route path="/" element={<Home />} />
+        {/* =========================
+            HOME
+        ========================= */}
 
-        <Route path="/login" element={<Login />} />
-        <Route path="/customer-login" element={<Login />} />
-        <Route path="/worker-login" element={<Login />} />
+        <Route
+          path="/"
+          element={<Home />}
+        />
 
-        <Route path="/register" element={<Register />} />
-        <Route path="/worker-register" element={<WorkerRegister />} />
+
+        {/* =========================
+            LOGIN
+        ========================= */}
+
+        {/* General login
+            Shows Customer + Worker */}
+
+        <Route
+          path="/login"
+          element={<Login />}
+        />
+
+
+        {/* Customer-only login */}
+
+        <Route
+          path="/customer-login"
+          element={
+            <Navigate
+              to="/login?role=customer"
+              replace
+            />
+          }
+        />
+
+
+        {/* Worker-only login */}
+
+        <Route
+          path="/worker-login"
+          element={
+            <Navigate
+              to="/login?role=worker"
+              replace
+            />
+          }
+        />
+
+
+        {/* =========================
+            REGISTRATION
+        ========================= */}
+
+        <Route
+          path="/register"
+          element={<Register />}
+        />
+
+        <Route
+          path="/worker-register"
+          element={<WorkerRegister />}
+        />
+
+
+        {/* =========================
+            CUSTOMER DASHBOARD
+        ========================= */}
 
         <Route
           path="/customer-dashboard"
@@ -53,6 +137,11 @@ function App() {
           }
         />
 
+
+        {/* =========================
+            WORKER DASHBOARD
+        ========================= */}
+
         <Route
           path="/worker-dashboard"
           element={
@@ -61,6 +150,21 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+
+        {/* =========================
+            REQUEST HISTORY
+        ========================= */}
+
+        <Route
+          path="/request-history"
+          element={<RequestHistory />}
+        />
+
+
+        {/* =========================
+            ADMIN DASHBOARD
+        ========================= */}
 
         <Route
           path="/admin-dashboard"
@@ -71,7 +175,23 @@ function App() {
           }
         />
 
+
+        {/* =========================
+            UNKNOWN URL
+        ========================= */}
+
+        <Route
+          path="*"
+          element={
+            <Navigate
+              to="/"
+              replace
+            />
+          }
+        />
+
       </Routes>
+
     </BrowserRouter>
   );
 }

@@ -1,1169 +1,648 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../services/api";
 
 function WorkerRegister() {
-
   const navigate = useNavigate();
 
-  // =====================================================
-  // WORKER DETAILS
-  // =====================================================
-
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [skill, setSkill] = useState("");
-  const [experience, setExperience] = useState("");
-  const [description, setDescription] = useState("");
-  const [location, setLocation] = useState("");
-  const [pincode, setPincode] = useState("");
-  const [locationLoading, setLocationLoading] = useState(false);
-  const [password, setPassword] = useState("");
-
-  // =====================================================
-  // WORKER LOCATION
-  // =====================================================
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    skill: "",
+    experience: "",
+    description: "",
+    location: "",
+    pincode: "",
+    password: "",
+  });
 
   const [lat, setLat] = useState("");
   const [lng, setLng] = useState("");
 
-  // =====================================================
-  // OTP
-  // =====================================================
-
-  const [otp, setOtp] = useState("");
-
-  const [otpSent, setOtpSent] = useState(false);
-
-  const [phoneVerified, setPhoneVerified] = useState(false);
-
-  const [otpVerificationToken, setOtpVerificationToken] =
-    useState("");
-
   const [loading, setLoading] = useState(false);
-
+  const [locationLoading, setLocationLoading] = useState(false);
 
   // =====================================================
-  // GET CURRENT LOCATION
+  // FORM CHANGE
   // =====================================================
 
- // =====================================================
-// GET CURRENT LOCATION
-// =====================================================
+  const handleChange = (e) => {
+    const { name, value } = e.target;
 
-const getCurrentLocation = () => {
-
-  if (!navigator.geolocation) {
-    alert("Location is not supported by this browser.");
-    return;
-  }
-
-  setLocationLoading(true);
-
-  navigator.geolocation.getCurrentPosition(
-
-    (position) => {
-
-      setLat(position.coords.latitude);
-      setLng(position.coords.longitude);
-
-      setLocation(
-        "Current GPS Location"
-      );
-
-      setLocationLoading(false);
-
-      alert("📍 Current location detected successfully.");
-
-    },
-
-    (error) => {
-
-      console.error("LOCATION ERROR:", error);
-
-      setLocationLoading(false);
-
-      alert(
-        "Unable to get your location. Please allow location permission or use PIN Code."
-      );
-
-    },
-
-    {
-      enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 0
+    if (name === "phone") {
+      setForm((prev) => ({
+        ...prev,
+        phone: value.replace(/\D/g, "").slice(0, 10),
+      }));
+      return;
     }
 
-  );
-};
+    if (name === "pincode") {
+      setForm((prev) => ({
+        ...prev,
+        pincode: value.replace(/\D/g, "").slice(0, 6),
+      }));
+      return;
+    }
 
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
-// =====================================================
-// FIND LOCATION USING PIN CODE
-// =====================================================
+  // =====================================================
+  // CURRENT GPS LOCATION
+  // =====================================================
 
-const findByPincode = async () => {
-
-  const pin = pincode.trim();
-
-  if (!/^[1-9][0-9]{5}$/.test(pin)) {
-
-    alert("Please enter a valid 6-digit Indian PIN Code.");
-
-    return;
-
-  }
-
-  try {
+  const getCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert("Location is not supported by this browser.");
+      return;
+    }
 
     setLocationLoading(true);
 
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?postalcode=${pin}&country=India&format=json&limit=1`
-    );
-
-    const data = await response.json();
-
-    if (!data || data.length === 0) {
-
-      alert(
-        "Location not found for this PIN Code."
-      );
-
-      return;
-
-    }
-
-    const latitude =
-      Number(data[0].lat);
-
-    const longitude =
-      Number(data[0].lon);
-
-    setLat(latitude);
-    setLng(longitude);
-
-    setLocation(
-      `PIN Code ${pin}`
-    );
-
-    alert(
-      "📍 PIN Code location found successfully."
-    );
-
-  }
-
-  catch (error) {
-
-    console.error(
-      "PIN CODE LOCATION ERROR:",
-      error
-    );
-
-    alert(
-      "Unable to find this PIN Code location."
-    );
-
-  }
-
-  finally {
-
-    setLocationLoading(false);
-
-  }
-
-};
-
-
-  // =====================================================
-  // PHONE NUMBER CHANGE
-  // =====================================================
-
-  const handlePhoneChange = (e) => {
-
-    const newPhone =
-      e.target.value;
-
-
-    setPhone(newPhone);
-
-
-    // If phone changes after OTP verification,
-    // previous verification is no longer valid.
-
-    setOtpSent(false);
-
-    setPhoneVerified(false);
-
-    setOtp("");
-
-    setOtpVerificationToken("");
-
-  };
-
-
-  // =====================================================
-  // SEND OTP
-  // =====================================================
-
-  const sendOtp = async () => {
-
-    if (!phone.trim()) {
-
-      alert(
-        "Please enter your phone number."
-      );
-
-      return;
-
-    }
-
-
-    // Basic Indian mobile validation
-
-    const cleanPhone =
-      phone
-        .replace(/\s/g, "")
-        .replace(/-/g, "");
-
-
-    if (
-      !/^(?:\+91|91)?[6-9]\d{9}$/.test(
-        cleanPhone
-      )
-    ) {
-
-      alert(
-        "Please enter a valid Indian mobile number."
-      );
-
-      return;
-
-    }
-
-
-    try {
-
-      setLoading(true);
-
-
-      const response =
-        await API.post(
-
-          "/auth/send-otp",
-
-          {
-            phone
-          }
-
-        );
-
-
-      console.log(
-        "SEND OTP RESPONSE:",
-        response.data
-      );
-
-
-      setOtpSent(true);
-
-      setPhoneVerified(false);
-
-      setOtp("");
-
-      setOtpVerificationToken("");
-
-
-      alert(
-
-        response.data.message ||
-
-        "OTP generated successfully."
-
-      );
-
-    }
-
-
-    catch (error) {
-
-      console.error(
-        "SEND OTP ERROR:",
-        error
-      );
-
-
-      alert(
-
-        error.response?.data?.message ||
-
-        "Unable to generate OTP."
-
-      );
-
-    }
-
-
-    finally {
-
-      setLoading(false);
-
-    }
-
-  };
-
-
-  // =====================================================
-  // VERIFY OTP
-  // =====================================================
-
-  const verifyOtp = async () => {
-
-    if (!otp.trim()) {
-
-      alert(
-        "Please enter the OTP."
-      );
-
-      return;
-
-    }
-
-
-    if (otp.length !== 6) {
-
-      alert(
-        "OTP must contain 6 digits."
-      );
-
-      return;
-
-    }
-
-
-    try {
-
-      setLoading(true);
-
-
-      const response =
-        await API.post(
-
-          "/auth/verify-otp",
-
-          {
-
-            phone,
-
-            otp
-
-          }
-
-        );
-
-
-      console.log(
-        "VERIFY OTP RESPONSE:",
-        response.data
-      );
-
-
-      if (
-        response.data.verified === true &&
-        response.data.otpVerificationToken
-      ) {
-
-        setPhoneVerified(true);
-
-
-        setOtpVerificationToken(
-
-          response.data.otpVerificationToken
-
-        );
-
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+
+        setLat(latitude);
+        setLng(longitude);
+
+        setForm((prev) => ({
+          ...prev,
+          location: prev.location || "Current GPS Location",
+        }));
+
+        setLocationLoading(false);
+
+        alert("📍 Current location detected successfully.");
+      },
+      (error) => {
+        console.error("LOCATION ERROR:", error);
+        setLocationLoading(false);
 
         alert(
-          "Phone number verified successfully! ✅"
+          "Unable to get your location. Please allow location permission or use PIN Code."
         );
-
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
       }
-
-      else {
-
-        setPhoneVerified(false);
-
-        setOtpVerificationToken("");
-
-        alert(
-          "Invalid OTP."
-        );
-
-      }
-
-    }
-
-
-    catch (error) {
-
-      console.error(
-        "VERIFY OTP ERROR:",
-        error
-      );
-
-
-      setPhoneVerified(false);
-
-      setOtpVerificationToken("");
-
-
-      alert(
-
-        error.response?.data?.message ||
-
-        "Invalid or expired OTP."
-
-      );
-
-    }
-
-
-    finally {
-
-      setLoading(false);
-
-    }
-
+    );
   };
 
+  // =====================================================
+  // FIND LOCATION USING PIN CODE
+  // =====================================================
+
+  const findByPincode = async () => {
+    const pin = form.pincode.trim();
+
+    if (!/^[1-9][0-9]{5}$/.test(pin)) {
+      alert("Please enter a valid 6-digit Indian PIN Code.");
+      return;
+    }
+
+    try {
+      setLocationLoading(true);
+
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?postalcode=${pin}&country=India&format=json&limit=1`
+      );
+
+      if (!response.ok) {
+        throw new Error("Location service failed.");
+      }
+
+      const data = await response.json();
+
+      if (!data || data.length === 0) {
+        alert("Location not found for this PIN Code.");
+        return;
+      }
+
+      const latitude = Number(data[0].lat);
+      const longitude = Number(data[0].lon);
+
+      setLat(latitude);
+      setLng(longitude);
+
+      setForm((prev) => ({
+        ...prev,
+        location: `PIN Code ${pin}`,
+      }));
+
+      alert("📍 PIN Code location found successfully.");
+    } catch (error) {
+      console.error("PIN CODE ERROR:", error);
+      alert("Unable to find this PIN Code location.");
+    } finally {
+      setLocationLoading(false);
+    }
+  };
 
   // =====================================================
   // REGISTER WORKER
   // =====================================================
 
-  const registerWorker = async () => {
+  const registerWorker = async (e) => {
+    e.preventDefault();
 
-    // ---------------------------------------------------
-    // BASIC VALIDATION
-    // ---------------------------------------------------
+    const {
+      name,
+      email,
+      phone,
+      skill,
+      experience,
+      description,
+      location,
+      password,
+    } = form;
 
     if (
       !name.trim() ||
       !email.trim() ||
       !phone.trim() ||
-      !skill ||
-      !password
+      !skill.trim() ||
+      !password.trim()
     ) {
-
       alert(
         "Please fill Name, Email, Phone, Skill and Password."
       );
-
       return;
-
     }
 
-
-    // ---------------------------------------------------
-    // OTP VERIFICATION
-    // ---------------------------------------------------
-
-    if (
-      !phoneVerified ||
-      !otpVerificationToken
-    ) {
-
-      alert(
-        "Please verify your phone number with OTP first."
-      );
-
+    if (!/^[6-9][0-9]{9}$/.test(phone.trim())) {
+      alert("Please enter a valid 10-digit Indian mobile number.");
       return;
-
     }
-
-
-    // ---------------------------------------------------
-    // LOCATION
-    // ---------------------------------------------------
 
     if (!lat || !lng) {
-
       alert(
-         "Please select your location using GPS or PIN Code before registering."
+        "Please select your location using Current Location or PIN Code."
       );
-
       return;
-
     }
 
-
     try {
-
       setLoading(true);
 
+      const response = await API.post("/auth/register", {
+        name: name.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+        password: password.trim(),
 
-      // -------------------------------------------------
-      // SEND WORKER DATA TO BACKEND
-      // -------------------------------------------------
+        role: "worker",
 
-      const response =
-        await API.post(
+        skills: [skill.trim().toLowerCase()],
 
-          "/auth/register",
+        experience: Number(experience) || 0,
 
-          {
+        description: description.trim(),
 
-            name:
-              name.trim(),
+        locationCity: location.trim(),
 
-            email:
-              email.trim(),
-
-            phone:
-              phone.trim(),
-
-            password,
-
-            role:
-              "worker",
-
-            // Worker skill
-
-            skills: [
-
-              skill
-                .toLowerCase()
-                .trim()
-
-            ],
-
-            // Experience
-
-            experience:
-              Number(experience) || 0,
-
-            // Work description
-
-            description:
-              description.trim(),
-
-            // City
-
-            locationCity:
-              location.trim(),
-
-            // GPS coordinates
-
-            lat:
-              Number(lat),
-
-            lng:
-              Number(lng),
-
-            // OTP verification token
-
-            otpVerificationToken
-
-          }
-
-        );
-
+        lat: Number(lat),
+        lng: Number(lng),
+      });
 
       console.log(
         "WORKER REGISTRATION RESPONSE:",
         response.data
       );
 
+      alert("🎉 Worker account created successfully!");
 
-      alert(
-        "Worker Registered Successfully! 🎉"
-      );
-
-
-      navigate(
-        "/worker-login"
-      );
-
-    }
-
-
-    catch (error) {
-
+      navigate("/worker-login");
+    } catch (error) {
       console.error(
         "WORKER REGISTRATION ERROR:",
         error
       );
 
-
       alert(
-
         error.response?.data?.message ||
-
-        "Registration Failed."
-
+          "Registration failed. Please try again."
       );
-
-    }
-
-
-    finally {
-
+    } finally {
       setLoading(false);
-
     }
-
   };
 
-
-  // =====================================================
-  // UI
-  // =====================================================
+  const inputClass =
+    "w-full px-4 py-3 rounded-xl border border-slate-200 bg-white outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition";
 
   return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
 
-    <div className="
-      min-h-screen
-      flex
-      justify-center
-      items-center
-      bg-gray-100
-      py-8
-    ">
+      {/* =====================================================
+          TOP NAVIGATION
+      ===================================================== */}
 
+      <header className="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-5 py-4 flex items-center justify-between">
 
-      <div className="
-        bg-white
-        p-8
-        rounded
-        shadow
-        w-96
-      ">
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            className="font-bold text-xl text-slate-900"
+          >
+            Work<span className="text-blue-600">Hub</span>
+          </button>
 
-
-        {/* =================================================
-            TITLE
-        ================================================= */}
-
-        <h2 className="
-          text-2xl
-          font-bold
-          mb-6
-          text-center
-        ">
-
-          Worker Registration
-
-        </h2>
-
-
-        {/* =================================================
-            NAME
-        ================================================= */}
-
-        <input
-          type="text"
-          placeholder="Name"
-          className="
-            border
-            p-2
-            w-full
-            mb-3
-          "
-          value={name}
-          onChange={(e) =>
-            setName(e.target.value)
-          }
-        />
-
-
-        {/* =================================================
-            EMAIL
-        ================================================= */}
-
-        <input
-          type="email"
-          placeholder="Email"
-          className="
-            border
-            p-2
-            w-full
-            mb-3
-          "
-          value={email}
-          onChange={(e) =>
-            setEmail(e.target.value)
-          }
-        />
-
-
-        {/* =================================================
-            PHONE + SEND OTP
-        ================================================= */}
-
-        <div className="
-          flex
-          gap-2
-          mb-3
-        ">
-
-          <input
-            type="tel"
-            placeholder="Phone Number"
-            disabled={phoneVerified}
-            className="
-              border
-              p-2
-              flex-1
-              disabled:bg-gray-100
-            "
-            value={phone}
-            onChange={handlePhoneChange}
-          />
-
-
-          {!phoneVerified && (
-
+          <div className="flex gap-2">
             <button
-              onClick={sendOtp}
-              disabled={loading}
-              className="
-                bg-blue-600
-                text-white
-                px-3
-                rounded
-                hover:bg-blue-700
-                disabled:bg-gray-400
-              "
+              type="button"
+              onClick={() => navigate("/")}
+              className="px-4 py-2 rounded-lg text-slate-600 hover:bg-slate-100"
             >
-
-              {loading
-                ? "..."
-                : "Send OTP"}
-
+              ← Home
             </button>
 
-          )}
+            <button
+              type="button"
+              onClick={() => navigate("/worker-login")}
+              className="px-4 py-2 rounded-lg bg-slate-900 text-white hover:bg-slate-800"
+            >
+              Worker Login
+            </button>
+          </div>
+
+        </div>
+      </header>
+
+      {/* =====================================================
+          MAIN
+      ===================================================== */}
+
+      <main className="max-w-7xl mx-auto px-5 py-10">
+
+        <div className="grid lg:grid-cols-3 gap-8">
+
+          {/* =================================================
+              FORM
+          ================================================= */}
+
+          <section className="lg:col-span-2">
+
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 md:p-8">
+
+              <div className="mb-8">
+
+                <span className="inline-flex px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-bold">
+                  WORKER REGISTRATION
+                </span>
+
+                <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mt-3">
+                  Create your worker profile
+                </h1>
+
+                <p className="text-slate-500 mt-2">
+                  Add your professional details so customers can
+                  find and hire you.
+                </p>
+
+              </div>
+
+              <form onSubmit={registerWorker} className="space-y-6">
+
+                {/* BASIC DETAILS */}
+
+                <div>
+
+                  <h2 className="font-bold text-lg text-slate-900 mb-4">
+                    👤 Personal Details
+                  </h2>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+
+                    <input
+                      name="name"
+                      placeholder="Full Name"
+                      className={inputClass}
+                      value={form.name}
+                      onChange={handleChange}
+                    />
+
+                    <input
+                      name="email"
+                      type="email"
+                      placeholder="Email Address"
+                      className={inputClass}
+                      value={form.email}
+                      onChange={handleChange}
+                    />
+
+                    <input
+                      name="phone"
+                      type="tel"
+                      placeholder="Mobile Number"
+                      className={inputClass}
+                      value={form.phone}
+                      onChange={handleChange}
+                      maxLength={10}
+                    />
+
+                    <input
+                      name="password"
+                      type="password"
+                      placeholder="Create Password"
+                      className={inputClass}
+                      value={form.password}
+                      onChange={handleChange}
+                    />
+
+                  </div>
+
+                </div>
+
+                {/* PROFESSIONAL DETAILS */}
+
+                <div>
+
+                  <h2 className="font-bold text-lg text-slate-900 mb-4">
+                    🛠️ Professional Details
+                  </h2>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+
+                    <select
+                      name="skill"
+                      className={inputClass}
+                      value={form.skill}
+                      onChange={handleChange}
+                    >
+                      <option value="">
+                        Select Primary Skill
+                      </option>
+                      <option value="electrician">
+                        Electrician
+                      </option>
+                      <option value="plumber">
+                        Plumber
+                      </option>
+                      <option value="carpenter">
+                        Carpenter
+                      </option>
+                      <option value="painter">
+                        Painter
+                      </option>
+                      <option value="mechanic">
+                        Mechanic
+                      </option>
+                      <option value="cleaner">
+                        Cleaner
+                      </option>
+                      <option value="construction">
+                        Construction Worker
+                      </option>
+                      <option value="driver">
+                        Driver
+                      </option>
+                      <option value="general worker">
+                        General Worker
+                      </option>
+                    </select>
+
+                    <input
+                      name="experience"
+                      type="number"
+                      min="0"
+                      placeholder="Experience (Years)"
+                      className={inputClass}
+                      value={form.experience}
+                      onChange={handleChange}
+                    />
+
+                  </div>
+
+                  <textarea
+                    name="description"
+                    rows="4"
+                    placeholder="Describe your experience, services and expertise..."
+                    className={`${inputClass} mt-4 resize-none`}
+                    value={form.description}
+                    onChange={handleChange}
+                  />
+
+                </div>
+
+                {/* LOCATION */}
+
+                <div>
+
+                  <h2 className="font-bold text-lg text-slate-900 mb-4">
+                    📍 Work Location
+                  </h2>
+
+                  <input
+                    name="location"
+                    placeholder="City / Area"
+                    className={inputClass}
+                    value={form.location}
+                    onChange={handleChange}
+                  />
+
+                  <div className="grid md:grid-cols-2 gap-3 mt-4">
+
+                    <button
+                      type="button"
+                      onClick={getCurrentLocation}
+                      disabled={locationLoading}
+                      className="py-3 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 font-semibold hover:bg-blue-100 disabled:opacity-50"
+                    >
+                      {locationLoading
+                        ? "Detecting..."
+                        : "📍 Use Current Location"}
+                    </button>
+
+                    <div className="flex gap-2">
+
+                      <input
+                        name="pincode"
+                        placeholder="6-digit PIN Code"
+                        className={inputClass}
+                        value={form.pincode}
+                        onChange={handleChange}
+                        maxLength={6}
+                      />
+
+                      <button
+                        type="button"
+                        onClick={findByPincode}
+                        disabled={locationLoading}
+                        className="px-5 rounded-xl bg-slate-900 text-white font-semibold hover:bg-slate-800 disabled:opacity-50"
+                      >
+                        Find
+                      </button>
+
+                    </div>
+
+                  </div>
+
+                  {lat && lng ? (
+                    <div className="mt-4 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm">
+                      <p className="font-semibold">
+                        ✅ Location selected
+                      </p>
+                      <p className="mt-1">
+                        Latitude: {Number(lat).toFixed(6)}
+                      </p>
+                      <p>
+                        Longitude: {Number(lng).toFixed(6)}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="mt-4 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-sm">
+                      ⚠️ Please select your work location before registering.
+                    </div>
+                  )}
+
+                </div>
+
+                {/* REGISTER */}
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white font-bold text-lg shadow-lg transition"
+                >
+                  {loading
+                    ? "Creating Account..."
+                    : "🚀 Create Worker Account"}
+                </button>
+
+              </form>
+
+            </div>
+
+          </section>
+
+          {/* =================================================
+              SIDEBAR
+          ================================================= */}
+
+          <aside className="space-y-5">
+
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6">
+
+              <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center text-2xl">
+                👷
+              </div>
+
+              <h2 className="text-xl font-bold text-slate-900 mt-4">
+                Why join WorkHub?
+              </h2>
+
+              <p className="text-sm text-slate-500 mt-2 leading-6">
+                Build your profile and connect with customers
+                looking for workers in your area.
+              </p>
+
+              <div className="space-y-5 mt-6">
+
+                <div className="flex gap-3">
+                  <span className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+                    ✓
+                  </span>
+                  <div>
+                    <p className="font-semibold">
+                      Professional Profile
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Showcase your skills and experience.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <span className="w-10 h-10 rounded-xl bg-sky-50 flex items-center justify-center">
+                    📍
+                  </span>
+                  <div>
+                    <p className="font-semibold">
+                      Nearby Opportunities
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Help customers discover workers nearby.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <span className="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center">
+                    🤖
+                  </span>
+                  <div>
+                    <p className="font-semibold">
+                      Smart Matching
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Your skills can be matched with suitable jobs.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <span className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
+                    ⭐
+                  </span>
+                  <div>
+                    <p className="font-semibold">
+                      Build Your Reputation
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Complete jobs and grow your profile.
+                    </p>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+
+            <div className="bg-slate-900 rounded-3xl p-6 text-white">
+
+              <p className="text-sm text-slate-300">
+                Already have an account?
+              </p>
+
+              <h3 className="text-xl font-bold mt-1">
+                Welcome back!
+              </h3>
+
+              <button
+                type="button"
+                onClick={() => navigate("/worker-login")}
+                className="w-full mt-5 py-3 rounded-xl bg-white text-slate-900 font-bold hover:bg-slate-100"
+              >
+                Go to Worker Login →
+              </button>
+
+            </div>
+
+          </aside>
 
         </div>
 
+        <footer className="text-center py-8">
 
-        {/* =================================================
-            OTP INPUT
-        ================================================= */}
-
-        {otpSent && !phoneVerified && (
-
-          <div className="mb-4">
-
-            <input
-              type="text"
-              placeholder="Enter 6-digit OTP"
-              maxLength={6}
-              className="
-                border
-                p-2
-                w-full
-                mb-2
-              "
-              value={otp}
-              onChange={(e) => {
-
-                setOtp(
-
-                  e.target.value
-                    .replace(/\D/g, "")
-                    .slice(0, 6)
-
-                );
-
-              }}
-            />
-
-
-            <button
-              onClick={verifyOtp}
-              disabled={loading}
-              className="
-                bg-purple-600
-                text-white
-                w-full
-                py-2
-                rounded
-                hover:bg-purple-700
-                disabled:bg-gray-400
-              "
-            >
-
-              {loading
-                ? "Verifying..."
-                : "Verify OTP"}
-
-            </button>
-
-
-            <p className="
-              text-xs
-              text-gray-500
-              text-center
-              mt-2
-            ">
-
-              💻 Demo OTP is displayed
-              in the backend terminal.
-
-            </p>
-
-          </div>
-
-        )}
-
-
-        {/* =================================================
-            VERIFIED
-        ================================================= */}
-
-        {phoneVerified && (
-
-          <div className="
-            bg-green-100
-            text-green-700
-            border
-            border-green-300
-            p-2
-            rounded
-            mb-4
-            text-center
-          ">
-
-            ✅ Phone Number Verified
-
-          </div>
-
-        )}
-
-
-        {/* =================================================
-            SKILL
-        ================================================= */}
-
-        <select
-          className="
-            border
-            p-2
-            w-full
-            mb-3
-          "
-          value={skill}
-          onChange={(e) =>
-            setSkill(e.target.value)
-          }
-        >
-
-          <option value="">
-            Select Skill
-          </option>
-
-          <option value="electrician">
-            Electrician
-          </option>
-
-          <option value="carpenter">
-            Carpenter
-          </option>
-
-          <option value="plumber">
-            Plumber
-          </option>
-
-          <option value="staff">
-            Staff
-          </option>
-
-          <option value="technician">
-            Technician
-          </option>
-
-          <option value="painter">
-            Painter
-          </option>
-
-          <option value="driver">
-            Driver
-          </option>
-
-          <option value="security guard">
-            Security Guard
-          </option>
-
-          <option value="cleaning">
-            Cleaner
-          </option>
-
-          <option value="mechanic">
-            Mechanic
-          </option>
-
-          <option value="other">
-            Other
-          </option>
-
-        </select>
-
-
-        {/* =================================================
-            EXPERIENCE
-        ================================================= */}
-
-        <input
-          type="number"
-          min="0"
-          placeholder="Experience (Years)"
-          className="
-            border
-            p-2
-            w-full
-            mb-3
-          "
-          value={experience}
-          onChange={(e) =>
-            setExperience(e.target.value)
-          }
-        />
-
-
-        {/* =================================================
-            DESCRIPTION
-        ================================================= */}
-
-        <textarea
-          placeholder="Describe your work"
-          className="
-            border
-            p-2
-            w-full
-            mb-3
-          "
-          value={description}
-          onChange={(e) =>
-            setDescription(e.target.value)
-          }
-        />
-
-
-        {/* =================================================
-    WORKER LOCATION
-================================================= */}
-
-<div className="mb-4">
-
-  <h3 className="font-bold mb-2">
-    📍 Worker Location
-  </h3>
-
-  {/* City */}
-
-  <input
-    type="text"
-    placeholder="Location (City)"
-    className="border p-2 w-full mb-2"
-    value={location}
-    onChange={(e) =>
-      setLocation(e.target.value)
-    }
-  />
-
-  {/* CURRENT LOCATION */}
-
-  <button
-    type="button"
-    onClick={getCurrentLocation}
-    disabled={locationLoading}
-    className="
-      bg-green-600
-      text-white
-      w-full
-      py-2
-      rounded
-      mb-2
-      hover:bg-green-700
-      disabled:bg-gray-400
-    "
-  >
-
-    {locationLoading
-      ? "Getting Location..."
-      : "📍 Use Current Location"}
-
-  </button>
-
-  {/* PIN CODE */}
-
-  <div className="flex gap-2">
-
-    <input
-      type="text"
-      maxLength={6}
-      placeholder="Enter 6-digit PIN Code"
-      className="border p-2 flex-1"
-      value={pincode}
-      onChange={(e) =>
-        setPincode(
-          e.target.value
-            .replace(/\D/g, "")
-            .slice(0, 6)
-        )
-      }
-    />
-
-    <button
-      type="button"
-      onClick={findByPincode}
-      disabled={locationLoading}
-      className="
-        bg-blue-600
-        text-white
-        px-3
-        rounded
-        hover:bg-blue-700
-        disabled:bg-gray-400
-      "
-    >
-
-      Find
-
-    </button>
-
-  </div>
-
-</div>
-
-
-        {/* =================================================
-            LOCATION STATUS
-        ================================================= */}
-
-        {lat && lng ? (
-
-  <div className="
-    bg-green-50
-    text-green-700
-    border
-    border-green-200
-    p-2
-    rounded
-    mb-3
-    text-sm
-  ">
-
-    ✅ Location selected
-
-    <br />
-
-    Latitude: {Number(lat).toFixed(6)}
-
-    <br />
-
-    Longitude: {Number(lng).toFixed(6)}
-
-  </div>
-
-) : (
-
-  <div className="
-    bg-yellow-50
-    text-yellow-700
-    border
-    border-yellow-200
-    p-2
-    rounded
-    mb-3
-    text-sm
-  ">
-
-    ⚠️ Please use Current Location or enter your PIN Code.
-
-  </div>
-
-)}
-
-
-        {/* =================================================
-            PASSWORD
-        ================================================= */}
-
-        <input
-          type="password"
-          placeholder="Password"
-          className="
-            border
-            p-2
-            w-full
-            mb-4
-          "
-          value={password}
-          onChange={(e) =>
-            setPassword(e.target.value)
-          }
-        />
-
-
-        {/* =================================================
-            REGISTER BUTTON
-        ================================================= */}
-
-        <button
-          onClick={registerWorker}
-          disabled={
-            loading ||
-            !phoneVerified
-          }
-          className="
-            bg-blue-600
-            text-white
-            w-full
-            py-2
-            rounded
-            hover:bg-blue-700
-            disabled:bg-gray-400
-            disabled:cursor-not-allowed
-          "
-        >
-
-          {loading
-            ? "Registering..."
-            : "Register"}
-
-        </button>
-
-
-        {/* =================================================
-            INFORMATION
-        ================================================= */}
-
-        {!phoneVerified && (
-
-          <p className="
-            text-xs
-            text-gray-500
-            text-center
-            mt-4
-          ">
-
-            📱 Phone verification is required
-            before worker registration.
-
+          <p className="text-xs text-slate-400">
+            WorkHub • AI-powered worker matching and scheduling
           </p>
 
-        )}
+        </footer>
 
-      </div>
-
+      </main>
     </div>
-
   );
-
 }
 
 export default WorkerRegister;

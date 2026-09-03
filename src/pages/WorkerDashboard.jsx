@@ -854,42 +854,53 @@ function WorkerDashboard() {
                 }}
               >
                 <MapContainer
-                  key={
-                    workLocation
-                      ? workLocation.join(",")
-                      : "default"
-                  }
-                  center={
-                    workLocation || [20.5937, 78.9629]
-                  }
-                  zoom={workLocation ? 15 : 5}
-                  style={{
-                    height: "100%",
-                    width: "100%"
-                  }}
-                  scrollWheelZoom
-                >
-                  <TileLayer
-                    attribution='&copy; OpenStreetMap contributors'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  />
+  key={
+    workLocation
+      ? workLocation.join(",")
+      : "bengaluru-default"
+  }
 
-                  <LocationPicker
-                    onSelect={reverseGeocode}
-                  />
+  center={
+    workLocation || [12.9716, 77.5946]
+  }
 
-                  {workLocation && (
-                    <CircleMarker
-                      center={workLocation}
-                      radius={10}
-                      pathOptions={{
-                        color: "#dc2626",
-                        fillColor: "#ef4444",
-                        fillOpacity: 0.9
-                      }}
-                    />
-                  )}
-                </MapContainer>
+  zoom={
+    workLocation
+      ? 15
+      : 12
+  }
+
+  minZoom={10}
+  maxZoom={18}
+
+  style={{
+    height: "100%",
+    width: "100%"
+  }}
+
+  scrollWheelZoom={true}
+>
+  <TileLayer
+    attribution='&copy; OpenStreetMap contributors'
+    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+  />
+
+  <LocationPicker
+    onSelect={reverseGeocode}
+  />
+
+  {workLocation && (
+    <CircleMarker
+      center={workLocation}
+      radius={10}
+      pathOptions={{
+        color: "#dc2626",
+        fillColor: "#ef4444",
+        fillOpacity: 0.9
+      }}
+    />
+  )}
+</MapContainer>
               </div>
 
               <div
