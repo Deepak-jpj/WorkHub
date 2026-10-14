@@ -350,14 +350,17 @@ function WorkerRegister() {
                       maxLength={10}
                     />
 
-                    <input
-                      name="password"
-                      type="password"
-                      placeholder="Create Password"
-                      className={inputClass}
-                      value={form.password}
-                      onChange={handleChange}
-                    />
+                   <input
+  type="password"
+  name="password"
+  value={form.password}
+  onChange={handleChange}
+  placeholder="Create a strong password"
+  minLength={8}
+  pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_\-+=]).{8,}"
+  title="Use at least 8 characters, including an uppercase letter, a lowercase letter, a number, and a special character."
+  required
+/>
 
                   </div>
 

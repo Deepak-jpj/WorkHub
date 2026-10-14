@@ -3243,13 +3243,13 @@ function CustomerDashboard() {
                         <div className="grid md:grid-cols-2 gap-x-8">
 
                           <ScoreBar
-                            label="Skill Match"
-                            value={
-                              bestAIWorker
-                                .scoreBreakdown
-                                .skillMatch
-                            }
-                          />
+  label="Completed Jobs"
+  value={
+    bestAIWorker
+      .scoreBreakdown
+      .completedJobs
+  }
+/>
 
                           <ScoreBar
                             label="Availability"

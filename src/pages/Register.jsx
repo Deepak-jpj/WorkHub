@@ -1,15 +1,15 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
 export default function Register() {
   const navigate = useNavigate();
 
   const [showPassword, setShowPassword] = useState(false);
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-  });
+ const [form, setForm] = useState({
+  name: "",
+  email: "",
+  phone: "",
+  password: "",
+});
 
   const handleChange = (e) => {
     setForm({
@@ -18,12 +18,45 @@ export default function Register() {
     });
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    // Keep your existing registration logic/API here
-    console.log("Customer registration:", form);
-  };
+  try {
+    const response = await fetch(
+      "http://localhost:5000/api/auth/register",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: form.name,
+          email: form.email,
+          phone: form.phone,
+          password: form.password,
+          role: "customer",
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    console.log("Registration response:", data);
+
+    if (!response.ok) {
+      alert(data.message || "Registration failed");
+      return;
+    }
+
+    alert("Customer account created successfully!");
+
+    navigate("/login?role=customer");
+
+  } catch (error) {
+    console.error("Registration error:", error);
+    alert("Unable to connect to server. Make sure backend is running.");
+  }
+};
 
   return (
     <div style={styles.page}>
@@ -137,6 +170,19 @@ export default function Register() {
               />
             </div>
 
+            {/* PHONE */}
+<div style={styles.field}>
+  <label>Phone Number</label>
+  <input
+    type="tel"
+    name="phone"
+    placeholder="Enter your phone number"
+    value={form.phone}
+    onChange={handleChange}
+    required
+  />
+</div>
+
             {/* PASSWORD */}
             <div style={styles.field}>
               <div style={styles.passwordLabel}>
@@ -152,14 +198,17 @@ export default function Register() {
               </div>
 
               <div style={styles.passwordBox}>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  placeholder="Create a password"
-                  value={form.password}
-                  onChange={handleChange}
-                  required
-                />
+               <input
+  type={showPassword ? "text" : "password"}
+  name="password"
+  placeholder="Create a password (minimum 8 characters)"
+  value={form.password}
+  onChange={handleChange}
+  minLength={8}
+  pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_\-+=]).{8,}"
+  title="Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one number, and one special character."
+  required
+/>  
               </div>
             </div>
 
