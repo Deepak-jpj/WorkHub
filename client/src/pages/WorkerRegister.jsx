@@ -22,6 +22,8 @@ function WorkerRegister() {
 
   const [loading, setLoading] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState("");
 
   // =====================================================
   // FORM CHANGE
@@ -152,84 +154,182 @@ function WorkerRegister() {
   // =====================================================
 
   const registerWorker = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    const {
-      name,
-      email,
-      phone,
-      skill,
-      experience,
-      description,
-      location,
+  const {
+    name,
+    email,
+    phone,
+    skill,
+    experience,
+    description,
+    location,
+    password,
+  } = form;
+
+  // Validate required fields
+  if (
+    !name.trim() ||
+    !email.trim() ||
+    !phone.trim() ||
+    !skill.trim() ||
+    !password.trim()
+  ) {
+    alert("Please fill Name, Email, Phone, Skill and Password.");
+    return;
+  }
+
+  // Validate email
+  const normalizedEmail = email.trim().toLowerCase();
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+    alert("Please enter a valid email address.");
+    return;
+  }
+
+  // Validate Indian mobile number
+  if (!/^[6-9]\d{9}$/.test(phone.trim())) {
+    alert("Please enter a valid 10-digit Indian mobile number.");
+    return;
+  }
+
+  // Validate location
+  if (
+    lat === "" ||
+    lng === "" ||
+    !Number.isFinite(Number(lat)) ||
+    !Number.isFinite(Number(lng))
+  ) {
+    alert("Please select your location using Current Location or PIN Code.");
+    return;
+  }
+
+  try {
+    setLoading(true);
+
+    const response = await API.post("/auth/register", {
+      name: name.trim(),
+      email: normalizedEmail,
+      phone: phone.trim(),
       password,
-    } = form;
+      role: "worker",
+      skills: [skill.trim().toLowerCase()],
+      experience: Number(experience) || 0,
+      description: description.trim(),
+      locationCity: location.trim(),
+      lat: Number(lat),
+      lng: Number(lng),
+    });
 
+    // Display the complete backend response for debugging
+    console.log(
+      "WORKER REGISTRATION RESPONSE:",
+      JSON.stringify(response.data, null, 2)
+    );
+
+    // Only proceed if the backend confirms OTP verification is required
     if (
-      !name.trim() ||
-      !email.trim() ||
-      !phone.trim() ||
-      !skill.trim() ||
-      !password.trim()
+      response.data?.success !== true ||
+      response.data?.requiresEmailVerification !== true
     ) {
-      alert(
-        "Please fill Name, Email, Phone, Skill and Password."
-      );
-      return;
-    }
-
-    if (!/^[6-9][0-9]{9}$/.test(phone.trim())) {
-      alert("Please enter a valid 10-digit Indian mobile number.");
-      return;
-    }
-
-    if (!lat || !lng) {
-      alert(
-        "Please select your location using Current Location or PIN Code."
-      );
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      const response = await API.post("/auth/register", {
-        name: name.trim(),
-        email: email.trim(),
-        phone: phone.trim(),
-        password: password.trim(),
-
-        role: "worker",
-
-        skills: [skill.trim().toLowerCase()],
-
-        experience: Number(experience) || 0,
-
-        description: description.trim(),
-
-        locationCity: location.trim(),
-
-        lat: Number(lat),
-        lng: Number(lng),
-      });
-
-      console.log(
-        "WORKER REGISTRATION RESPONSE:",
+      console.error(
+        "Unexpected registration response:",
         response.data
       );
 
-      alert("🎉 Worker account created successfully!");
-
-      navigate("/worker-login");
-    } catch (error) {
-      console.error(
-        "WORKER REGISTRATION ERROR:",
-        error
+      alert(
+        response.data?.message ||
+          "The backend did not confirm OTP verification. Check the backend registration controller."
       );
 
+      return;
+    }
+
+    // Show OTP screen only after the backend confirms registration is pending
+    setOtpSent(true);
+    setOtp("");
+
+    alert(
+      "Verification code sent to your email. Please check your inbox and spam folder."
+    );
+  } catch (error) {
+    console.error(
+      "WORKER REGISTRATION ERROR:",
+      error.response?.data || error.message
+    );
+
+    alert(
+      error.response?.data?.message ||
+        "Worker registration failed. Please check the backend terminal."
+    );
+  } finally {
+    setLoading(false);
+  }
+};
+
+  const verifyWorkerOTP = async (e) => {
+  e.preventDefault();
+
+  if (!/^\d{6}$/.test(otp)) {
+    alert("Please enter a valid 6-digit OTP.");
+    return;
+  }
+
+  try {
+    setLoading(true);
+
+    const response = await API.post("/auth/verify-registration", {
+      email: form.email.trim().toLowerCase(),
+      otp,
+    });
+
+    console.log(
+      "WORKER OTP VERIFICATION RESPONSE:",
+      JSON.stringify(response.data, null, 2)
+    );
+
+    if (response.data?.success !== true) {
+      alert(
+        response.data?.message ||
+          "Email verification was unsuccessful."
+      );
+      return;
+    }
+
+    alert("Email verified! Worker account created successfully.");
+
+    navigate("/worker-login", { replace: true });
+  } catch (error) {
+    console.error(
+      "WORKER OTP VERIFICATION ERROR:",
+      error.response?.data || error.message
+    );
+
+    alert(
+      error.response?.data?.message ||
+        "OTP verification failed. Please try again."
+    );
+  } finally {
+    setLoading(false);
+  }
+};
+
+  const resendWorkerOTP = async () => {
+    try {
+      setLoading(true);
+
+      const response = await API.post("/auth/resend-registration-otp", {
+        email: form.email.trim().toLowerCase(),
+      });
+
+      console.log("WORKER RESEND OTP RESPONSE:", response.data);
+      setOtp("");
+      alert("A new verification code has been sent to your email.");
+    } catch (error) {
+      console.error("WORKER RESEND OTP ERROR:", error);
       alert(
         error.response?.data?.message ||
-          "Registration failed. Please try again."
+          "Unable to resend OTP. Please try again."
       );
     } finally {
       setLoading(false);
@@ -311,8 +411,10 @@ function WorkerRegister() {
 
               </div>
 
-              <form onSubmit={registerWorker} className="space-y-6">
+              <form onSubmit={otpSent ? verifyWorkerOTP : registerWorker} className="space-y-6">
 
+                {!otpSent ? (
+                  <>
                 {/* BASIC DETAILS */}
 
                 <div>
@@ -357,7 +459,7 @@ function WorkerRegister() {
   onChange={handleChange}
   placeholder="Create a strong password"
   minLength={8}
-  pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_\-+=]).{8,}"
+  pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,}"
   title="Use at least 8 characters, including an uppercase letter, a lowercase letter, a number, and a special character."
   required
 />
@@ -518,10 +620,87 @@ function WorkerRegister() {
                   className="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white font-bold text-lg shadow-lg transition"
                 >
                   {loading
-                    ? "Creating Account..."
+                    ? "Sending verification code..."
                     : "🚀 Create Worker Account"}
                 </button>
+                  </>
+                ) : (
+                  <div className="space-y-6">
+                    <div>
+                      <h2 className="font-bold text-lg text-slate-900 mb-2">
+                        ✉️ Verify your email address
+                      </h2>
+                      <p className="text-sm text-slate-500">
+                        Enter the 6-digit code sent to {form.email}.
+                      </p>
+                    </div>
 
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        Registered Email
+                      </label>
+                      <input
+                        type="email"
+                        value={form.email}
+                        readOnly
+                        className={`${inputClass} bg-slate-100 cursor-not-allowed`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        6-Digit Verification Code
+                      </label>
+                      <input
+                        type="text"
+                        name="otp"
+                        value={otp}
+                        onChange={(e) =>
+                          setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+                        }
+                        placeholder="Enter OTP from your email"
+                        maxLength={6}
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        required
+                        className={inputClass}
+                      />
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 text-sm">
+                      Check your inbox and spam folder for the verification code.
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={loading || otp.length !== 6}
+                      className="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white font-bold text-lg shadow-lg transition"
+                    >
+                      {loading ? "Verifying..." : "Verify OTP & Create Worker Account"}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={resendWorkerOTP}
+                      disabled={loading}
+                      className="w-full py-3 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 font-semibold hover:bg-blue-100 disabled:opacity-50"
+                    >
+                      Resend Verification Code
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={loading}
+                      onClick={() => {
+                        setOtpSent(false);
+                        setOtp("");
+                      }}
+                      className="w-full py-3 rounded-xl bg-slate-100 text-slate-700 font-semibold hover:bg-slate-200 disabled:opacity-50"
+                    >
+                      ← Back to Registration
+                    </button>
+                  </div>
+                )}
               </form>
 
             </div>
