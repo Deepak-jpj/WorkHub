@@ -268,51 +268,34 @@ function WorkerRegister() {
 };
 
   const verifyWorkerOTP = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (!/^\d{6}$/.test(otp)) {
-    alert("Please enter a valid 6-digit OTP.");
-    return;
-  }
-
-  try {
-    setLoading(true);
-
-    const response = await API.post("/auth/verify-registration", {
-      email: form.email.trim().toLowerCase(),
-      otp,
-    });
-
-    console.log(
-      "WORKER OTP VERIFICATION RESPONSE:",
-      JSON.stringify(response.data, null, 2)
-    );
-
-    if (response.data?.success !== true) {
-      alert(
-        response.data?.message ||
-          "Email verification was unsuccessful."
-      );
+    if (!/^\d{6}$/.test(otp)) {
+      alert("Please enter a valid 6-digit OTP.");
       return;
     }
 
-    alert("Email verified! Worker account created successfully.");
+    try {
+      setLoading(true);
 
-    navigate("/worker-login", { replace: true });
-  } catch (error) {
-    console.error(
-      "WORKER OTP VERIFICATION ERROR:",
-      error.response?.data || error.message
-    );
+      const response = await API.post("/auth/verify-registration", {
+        email: form.email.trim().toLowerCase(),
+        otp,
+      });
 
-    alert(
-      error.response?.data?.message ||
-        "OTP verification failed. Please try again."
-    );
-  } finally {
-    setLoading(false);
-  }
-};
+      console.log("WORKER OTP VERIFICATION RESPONSE:", response.data);
+      alert("Email verified! Worker account created successfully.");
+      navigate("/worker-login");
+    } catch (error) {
+      console.error("WORKER OTP VERIFICATION ERROR:", error);
+      alert(
+        error.response?.data?.message ||
+          "OTP verification failed. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const resendWorkerOTP = async () => {
     try {
