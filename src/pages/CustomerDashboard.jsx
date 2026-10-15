@@ -2730,25 +2730,16 @@ function CustomerDashboard() {
                     "
                   >
 
-                    <option value="other">
-                      Other
-                    </option>
-
-                    <option value="plumber">
-                      Plumber
-                    </option>
-
-                    <option value="electrician">
-                      Electrician
-                    </option>
-
-                    <option value="construction">
-                      Construction
-                    </option>
-
-                    <option value="cleaning">
-                      Cleaning
-                    </option>
+                    <option value="">Select Service Category</option>
+<option value="electrician">Electrician</option>
+<option value="plumber">Plumber</option>
+<option value="carpenter">Carpenter</option>
+<option value="painter">Painter</option>
+<option value="mechanic">Mechanic</option>
+<option value="cleaner">Cleaner</option>
+<option value="construction">Construction Worker</option>
+<option value="driver">Driver</option>
+<option value="general_worker">General Worker</option>
 
                   </select>
 

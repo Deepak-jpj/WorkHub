@@ -11,6 +11,10 @@ export default function Register() {
   password: "",
 });
 
+const [otpSent, setOtpSent] = useState(false);
+const [otp, setOtp] = useState("");
+const [loading, setLoading] = useState(false);
+
   const handleChange = (e) => {
     setForm({
       ...form,
@@ -20,6 +24,7 @@ export default function Register() {
 
 const handleSubmit = async (e) => {
   e.preventDefault();
+  setLoading(true);
 
   try {
     const response = await fetch(
@@ -31,7 +36,7 @@ const handleSubmit = async (e) => {
         },
         body: JSON.stringify({
           name: form.name,
-          email: form.email,
+          email: form.email.trim().toLowerCase(),
           phone: form.phone,
           password: form.password,
           role: "customer",
@@ -48,17 +53,104 @@ const handleSubmit = async (e) => {
       return;
     }
 
-    alert("Customer account created successfully!");
+    // Show the OTP verification form
+    setOtpSent(true);
 
-    navigate("/login?role=customer");
-
+    alert(
+      "Verification code sent to your email. Please check your inbox."
+    );
   } catch (error) {
     console.error("Registration error:", error);
-    alert("Unable to connect to server. Make sure backend is running.");
+
+    alert(
+      "Unable to connect to server. Make sure the backend is running."
+    );
+  } finally {
+    setLoading(false);
   }
 };
 
-  return (
+// VERIFY REGISTRATION OTP
+const handleVerifyOTP = async (e) => {
+  e.preventDefault();
+
+  if (!/^\d{6}$/.test(otp)) {
+    alert("Please enter a valid 6-digit OTP.");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    const response = await fetch(
+      "http://localhost:5000/api/auth/verify-registration",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: form.email.trim().toLowerCase(),
+          otp: otp,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.message || "OTP verification failed.");
+      return;
+    }
+
+    alert("Email verified! Customer account created successfully.");
+
+    navigate("/login?role=customer");
+  } catch (error) {
+    console.error("OTP verification error:", error);
+    alert("Unable to connect to server. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
+// RESEND REGISTRATION OTP
+const handleResendOTP = async () => {
+  setLoading(true);
+
+  try {
+    const response = await fetch(
+      "http://localhost:5000/api/auth/resend-registration-otp",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: form.email.trim().toLowerCase(),
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.message || "Unable to resend OTP.");
+      return;
+    }
+
+    setOtp("");
+
+    alert("A new verification code has been sent to your email.");
+  } catch (error) {
+    console.error("Resend OTP error:", error);
+    alert("Unable to connect to server. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+   return (
     <div style={styles.page}>
       {/* HEADER */}
       <header style={styles.header}>
@@ -72,6 +164,7 @@ const handleSubmit = async (e) => {
 
         <div style={styles.headerButtons}>
           <button
+            type="button"
             style={styles.homeBtn}
             onClick={() => navigate("/")}
           >
@@ -79,6 +172,7 @@ const handleSubmit = async (e) => {
           </button>
 
           <button
+            type="button"
             style={styles.backBtn}
             onClick={() => navigate(-1)}
           >
@@ -133,111 +227,234 @@ const handleSubmit = async (e) => {
         <section style={styles.card}>
           <div style={styles.cardTop}>
             <div>
-              <div style={styles.smallTitle}>CUSTOMER ACCOUNT</div>
-              <h2 style={styles.cardTitle}>Create your account</h2>
+              <div style={styles.smallTitle}>
+                {otpSent ? "EMAIL VERIFICATION" : "CUSTOMER ACCOUNT"}
+              </div>
+
+              <h2 style={styles.cardTitle}>
+                {otpSent
+                  ? "Verify your email"
+                  : "Create your account"}
+              </h2>
+
               <p style={styles.cardDescription}>
-                Join WorkHub and start finding trusted workers.
+                {otpSent
+                  ? "Enter the six-digit verification code sent to your email."
+                  : "Join WorkHub and start finding trusted workers."}
               </p>
             </div>
 
-            <div style={styles.userIcon}>👤</div>
+            <div style={styles.userIcon}>
+              {otpSent ? "✉️" : "👤"}
+            </div>
           </div>
 
-          <form onSubmit={handleSubmit}>
-            {/* NAME */}
-            <div style={styles.field}>
-              <label>Full Name</label>
-              <input
-                type="text"
-                name="name"
-                placeholder="Enter your full name"
-                value={form.name}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            {/* EMAIL */}
-            <div style={styles.field}>
-              <label>Email Address</label>
-              <input
-                type="email"
-                name="email"
-                placeholder="Enter your email address"
-                value={form.email}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            {/* PHONE */}
-<div style={styles.field}>
-  <label>Phone Number</label>
-  <input
-    type="tel"
-    name="phone"
-    placeholder="Enter your phone number"
-    value={form.phone}
-    onChange={handleChange}
-    required
-  />
-</div>
-
-            {/* PASSWORD */}
-            <div style={styles.field}>
-              <div style={styles.passwordLabel}>
-                <label>Password</label>
-
-                <button
-                  type="button"
-                  style={styles.showBtn}
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? "Hide" : "Show"}
-                </button>
+          {/* CUSTOMER REGISTRATION FORM */}
+          {!otpSent ? (
+            <form onSubmit={handleSubmit}>
+              {/* NAME */}
+              <div style={styles.field}>
+                <label>Full Name</label>
+                <input
+                  type="text"
+                  name="name"
+                  placeholder="Enter your full name"
+                  value={form.name}
+                  onChange={handleChange}
+                  required
+                />
               </div>
 
-              <div style={styles.passwordBox}>
-               <input
-  type={showPassword ? "text" : "password"}
-  name="password"
-  placeholder="Create a password (minimum 8 characters)"
-  value={form.password}
-  onChange={handleChange}
-  minLength={8}
-  pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_\-+=]).{8,}"
-  title="Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one number, and one special character."
-  required
-/>  
+              {/* EMAIL */}
+              <div style={styles.field}>
+                <label>Email Address</label>
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="Enter your email address"
+                  value={form.email}
+                  onChange={handleChange}
+                  required
+                />
               </div>
-            </div>
 
-            {/* SECURITY INFO */}
-            <div style={styles.security}>
-              <span style={styles.securityIcon}>🔒</span>
-              <div>
-                <strong>Secure registration</strong>
-                <p>Your account information is kept protected.</p>
+              {/* PHONE */}
+              <div style={styles.field}>
+                <label>Phone Number</label>
+                <input
+                  type="tel"
+                  name="phone"
+                  placeholder="Enter your phone number"
+                  value={form.phone}
+                  onChange={handleChange}
+                  required
+                />
               </div>
-            </div>
 
-            {/* BUTTON */}
-            <button type="submit" style={styles.registerBtn}>
-              Create Customer Account →
-            </button>
-          </form>
+              {/* PASSWORD */}
+              <div style={styles.field}>
+                <div style={styles.passwordLabel}>
+                  <label>Password</label>
+
+                  <button
+                    type="button"
+                    style={styles.showBtn}
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? "Hide" : "Show"}
+                  </button>
+                </div>
+
+                <div style={styles.passwordBox}>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    placeholder="Create a password (minimum 8 characters)"
+                    value={form.password}
+                    onChange={handleChange}
+                    minLength={8}
+                    pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_\-+=]).{8,}"
+                    title="Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one number, and one special character."
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* SECURITY INFO */}
+              <div style={styles.security}>
+                <span style={styles.securityIcon}>🔒</span>
+                <div>
+                  <strong>Secure registration</strong>
+                  <p>
+                    Your account information is kept protected.
+                  </p>
+                </div>
+              </div>
+
+              {/* REGISTER BUTTON */}
+              <button
+                type="submit"
+                style={styles.registerBtn}
+                disabled={loading}
+              >
+                {loading
+                  ? "Sending verification code..."
+                  : "Create Customer Account →"}
+              </button>
+            </form>
+          ) : (
+            /* OTP VERIFICATION FORM */
+            <form onSubmit={handleVerifyOTP}>
+              {/* REGISTERED EMAIL */}
+              <div style={styles.field}>
+                <label>Registered Email Address</label>
+
+                <input
+                  type="email"
+                  value={form.email}
+                  readOnly
+                  style={{
+                    backgroundColor: "#f3f4f6",
+                    cursor: "not-allowed",
+                  }}
+                />
+              </div>
+
+              {/* OTP INPUT */}
+              <div style={styles.field}>
+                <label>Enter 6-Digit OTP</label>
+
+                <input
+                  type="text"
+                  name="otp"
+                  placeholder="Enter the code sent to your email"
+                  value={otp}
+                  onChange={(e) =>
+                    setOtp(
+                      e.target.value.replace(/\D/g, "").slice(0, 6)
+                    )
+                  }
+                  maxLength={6}
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  required
+                />
+              </div>
+
+              {/* VERIFICATION INFO */}
+              <div style={styles.security}>
+                <span style={styles.securityIcon}>✉️</span>
+
+                <div>
+                  <strong>Check your email</strong>
+                  <p>
+                    Enter the verification code to create your
+                    customer account.
+                  </p>
+                </div>
+              </div>
+
+              {/* VERIFY BUTTON */}
+              <button
+                type="submit"
+                style={styles.registerBtn}
+                disabled={loading || otp.length !== 6}
+              >
+                {loading
+                  ? "Verifying..."
+                  : "Verify OTP & Create Account →"}
+              </button>
+
+              {/* RESEND OTP */}
+              <button
+                type="button"
+                onClick={handleResendOTP}
+                disabled={loading}
+                style={{
+                  ...styles.registerBtn,
+                  marginTop: "12px",
+                  backgroundColor: "#ffffff",
+                  color: "#2563eb",
+                  border: "1px solid #2563eb",
+                }}
+              >
+                Resend Verification Code
+              </button>
+
+              {/* BACK TO REGISTRATION */}
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => {
+                  setOtpSent(false);
+                  setOtp("");
+                }}
+                style={{
+                  ...styles.registerBtn,
+                  marginTop: "12px",
+                  backgroundColor: "#f3f4f6",
+                  color: "#374151",
+                }}
+              >
+                ← Back to Registration
+              </button>
+            </form>
+          )}
 
           {/* LOGIN */}
-          <div style={styles.loginBox}>
-            <span>Already have an account?</span>
+          {!otpSent && (
+            <div style={styles.loginBox}>
+              <span>Already have an account?</span>
 
-            <button
-              onClick={() => navigate("/login?role=customer")}
-              style={styles.loginBtn}
-            >
-              Sign in as Customer →
-            </button>
-          </div>
+              <button
+                type="button"
+                onClick={() => navigate("/login?role=customer")}
+                style={styles.loginBtn}
+              >
+                Sign in as Customer →
+              </button>
+            </div>
+          )}
         </section>
       </main>
     </div>
@@ -257,7 +474,6 @@ function Feature({ icon, title, text }) {
     </div>
   );
 }
-
 /* STYLES */
 const styles = {
   page: {

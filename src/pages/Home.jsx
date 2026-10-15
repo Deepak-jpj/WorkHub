@@ -23,6 +23,7 @@ function Home() {
   const [activeModal, setActiveModal] = useState(null);
   const openModal = name => setActiveModal(name);
   const closeModal = () => setActiveModal(null);
+  const [showProjectInfo, setShowProjectInfo] = useState(false);
 
   const openMenu = (e, name) => {
     e.preventDefault();
@@ -517,6 +518,61 @@ function Home() {
               AI-powered worker matching and job scheduling
               for everyday services.
             </p>
+            {/* Academic Project Button */}
+<button
+  type="button"
+  className="academic-project-button"
+  onClick={() => setShowProjectInfo(true)}
+>
+  Academic Project
+</button>
+
+{/* Academic Project Popup */}
+{showProjectInfo && (
+  <div
+    className="project-modal-overlay"
+    onClick={() => setShowProjectInfo(false)}
+  >
+    <div
+      className="project-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="project-modal-title"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <button
+        type="button"
+        className="project-modal-close"
+        onClick={() => setShowProjectInfo(false)}
+        aria-label="Close project information"
+      >
+        &times;
+      </button>
+
+      <span className="project-modal-label">
+        ACADEMIC PROJECT
+      </span>
+
+      <h2 id="project-modal-title">
+        AI-Based Industrial Job Scheduling for Daily Workers
+      </h2>
+
+      <p>
+        An AI-powered system for intelligent worker matching,
+        job scheduling, and efficient workforce management.
+      </p>
+
+      <h3>Project Team</h3>
+
+      <div className="project-modal-team">
+        <span>Deepak Gowda S A</span>
+        <span>Harush Gowda M C</span>
+        <span>Alam Basha</span>
+      </div>
+    </div>
+  </div>
+)}
+           
 
           </div>
 
@@ -575,6 +631,8 @@ function Home() {
         </div>
 
       </footer>
+
+      
 
 
       {/* ================= MODALS ================= */}
