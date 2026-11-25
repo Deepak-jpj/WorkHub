@@ -28,7 +28,7 @@ const handleSubmit = async (e) => {
 
   try {
     const response = await fetch(
-      "http://localhost:5000/api/auth/register",
+      "https://workhub-backend-2.onrender.com/api/auth/register",
       {
         method: "POST",
         headers: {
@@ -83,7 +83,7 @@ const handleVerifyOTP = async (e) => {
 
   try {
     const response = await fetch(
-      "http://localhost:5000/api/auth/verify-registration",
+      "https://workhub-backend-2.onrender.com/api/auth/verify-registration",
       {
         method: "POST",
         headers: {
@@ -119,7 +119,7 @@ const handleResendOTP = async () => {
 
   try {
     const response = await fetch(
-      "http://localhost:5000/api/auth/resend-registration-otp",
+      "https://workhub-backend-2.onrender.com/api/auth/resend-registration-otp",
       {
         method: "POST",
         headers: {
