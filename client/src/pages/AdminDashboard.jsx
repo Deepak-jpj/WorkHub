@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../services/api";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 
 // =====================================================
 // REUSABLE SEARCH BAR
@@ -316,6 +324,45 @@ function AdminDashboard() {
   );
 
   // =====================================================
+  // WORKER DISTRIBUTION BY PRIMARY SKILL
+  // Each worker is counted once, using their first skill.
+  // =====================================================
+
+  const skillCounts = workers.reduce((counts, worker) => {
+    const skills = Array.isArray(worker.skills) ? worker.skills : [];
+    const rawSkill = skills.find(
+      (skill) => typeof skill === "string" && skill.trim()
+    );
+    const skill = rawSkill
+      ? rawSkill.trim().replace(/\s+/g, " ").replace(/\b\w/g, (char) => char.toUpperCase())
+      : "Not specified";
+
+    counts[skill] = (counts[skill] || 0) + 1;
+    return counts;
+  }, {});
+
+  const workerSkillStats = Object.entries(skillCounts)
+    .map(([skill, count]) => ({
+      skill,
+      count,
+      percentage: workers.length ? (count / workers.length) * 100 : 0,
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  const chartColors = [
+    "#9333ea",
+    "#2563eb",
+    "#059669",
+    "#f59e0b",
+    "#ef4444",
+    "#0891b2",
+    "#db2777",
+    "#64748b",
+    "#84cc16",
+    "#7c3aed",
+  ];
+
+  // =====================================================
   // CUSTOMER CARD
   // =====================================================
 
@@ -479,6 +526,88 @@ function AdminDashboard() {
                     </p>
                   </div>
                 </div>
+
+                {/* WORKER DISTRIBUTION PIE CHART */}
+                <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm md:p-6">
+                  <div className="mb-4">
+                    <p className="text-sm font-semibold uppercase tracking-wide text-purple-600">
+                      Workforce Analytics
+                    </p>
+                    <h3 className="mt-1 text-xl font-bold text-gray-900">
+                      Workers by Profession
+                    </h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                      Percentage of registered workers by their primary skill.
+                    </p>
+                  </div>
+
+                  {workers.length === 0 ? (
+                    <p className="rounded-xl bg-gray-50 p-6 text-center text-gray-500">
+                      No worker data is available to display yet.
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-1 items-center gap-6 lg:grid-cols-2">
+                      <div className="h-72 min-w-0">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={workerSkillStats}
+                              dataKey="count"
+                              nameKey="skill"
+                              cx="50%"
+                              cy="50%"
+                              outerRadius={100}
+                              innerRadius={48}
+                              paddingAngle={2}
+                              label={({ percent }) => `${(percent * 100).toFixed(1)}%`}
+                              labelLine={false}
+                            >
+                              {workerSkillStats.map((entry, index) => (
+                                <Cell
+                                  key={`skill-${entry.skill}`}
+                                  fill={chartColors[index % chartColors.length]}
+                                />
+                              ))}
+                            </Pie>
+                            <Tooltip
+                              formatter={(value, _name, item) => [
+                                `${value} worker${Number(value) === 1 ? "" : "s"} (${item.payload.percentage.toFixed(1)}%)`,
+                                item.payload.skill,
+                              ]}
+                            />
+                            <Legend />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div className="mb-3 rounded-xl bg-purple-50 p-4">
+                          <p className="text-sm text-purple-700">Total registered workers</p>
+                          <p className="text-3xl font-bold text-purple-800">{workers.length}</p>
+                        </div>
+                        {workerSkillStats.map((item, index) => (
+                          <div key={item.skill} className="flex items-center justify-between gap-4">
+                            <div className="flex min-w-0 items-center gap-3">
+                              <span
+                                className="h-3 w-3 shrink-0 rounded-full"
+                                style={{ backgroundColor: chartColors[index % chartColors.length] }}
+                              />
+                              <span className="truncate text-sm font-medium text-gray-700">
+                                {item.skill}
+                              </span>
+                            </div>
+                            <div className="shrink-0 text-right">
+                              <span className="font-semibold text-gray-900">{item.count}</span>
+                              <span className="ml-2 text-sm text-gray-500">
+                                {item.percentage.toFixed(1)}%
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </section>
 
                 {/* WORKER SEARCH */}
 

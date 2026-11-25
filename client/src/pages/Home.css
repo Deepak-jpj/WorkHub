@@ -1787,3 +1787,123 @@ button,a{-webkit-tap-highlight-color:transparent}
     transition-duration:.01ms!important
   }
 }
+
+/* Academic Project Button */
+.academic-project-button {
+  display: inline-block;
+  margin-top: 14px;
+  padding: 8px 0;
+  background: transparent;
+  border: none;
+  color: #93c5fd;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+
+.academic-project-button:hover {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+/* Popup Overlay */
+.project-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(3, 7, 18, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+/* Popup Card */
+.project-modal {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 36px 28px;
+  background: #111b35;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 18px;
+  color: #ffffff;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+/* Close Button */
+.project-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 30px;
+  cursor: pointer;
+}
+
+/* Popup Text */
+.project-modal-label {
+  display: block;
+  color: #93c5fd;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  margin-bottom: 16px;
+}
+
+.project-modal h2 {
+  font-size: 25px;
+  line-height: 1.45;
+  margin: 0 0 16px;
+}
+
+.project-modal p {
+  color: #b8c7e0;
+  font-size: 15px;
+  line-height: 1.8;
+  margin-bottom: 24px;
+}
+
+.project-modal h3 {
+  font-size: 18px;
+  margin-bottom: 16px;
+}
+
+/* Team Members */
+.project-modal-team {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.project-modal-team span {
+  padding: 10px 14px;
+  background: #24304b;
+  border: 1px solid #3b4965;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+/* Mobile Responsive */
+@media (max-width: 480px) {
+  .project-modal {
+    padding: 34px 18px 24px;
+  }
+
+  .project-modal h2 {
+    font-size: 21px;
+  }
+
+  .project-modal-team {
+    flex-direction: column;
+  }
+}
